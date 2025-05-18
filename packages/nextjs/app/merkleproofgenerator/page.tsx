@@ -1,29 +1,30 @@
 "use client";
-import { useState } from 'react'
-import { 
-  TrashIcon, 
-  DocumentCheckIcon, 
-  ClipboardDocumentIcon, 
-  CheckCircleIcon, 
-  XCircleIcon, 
-  CodeBracketIcon
-} from '@heroicons/react/24/outline'
-import { generateMerkleTree as buildMerkleTree } from '../../utils/Merkle'
-import { ethers } from 'ethers'
-import { toast, ToastContainer } from "react-toastify"
-import 'react-toastify/dist/ReactToastify.css'
-import Papa from 'papaparse'
-import { saveAs } from 'file-saver'
-import { useAccount, useConnect, useDisconnect } from 'wagmi'
-import { formatEther } from 'viem'
-import { 
-  useMerkleRootValid, 
-  usePlatformFee, 
-  useIsNewcomer, 
+
+import { useState } from "react";
+import {
+  useIsNewcomer,
+  useMerkleContract,
+  useMerkleRootValid,
   useMerkleTreeInfo,
-  useMerkleContract
-} from '../../components/UseMerkleContract'
-import { MerkleTree } from '../../utils/Merkle'; 
+  usePlatformFee,
+} from "../../components/UseMerkleContract";
+import { generateMerkleTree as buildMerkleTree } from "../../utils/Merkle";
+import { MerkleTree } from "../../utils/Merkle";
+import { ethers } from "ethers";
+import { saveAs } from "file-saver";
+import Papa from "papaparse";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { formatEther } from "viem";
+import { useAccount, useConnect, useDisconnect } from "wagmi";
+import {
+  CheckCircleIcon,
+  ClipboardDocumentIcon,
+  CodeBracketIcon,
+  DocumentCheckIcon,
+  TrashIcon,
+  XCircleIcon,
+} from "@heroicons/react/24/outline";
 
 // Define interface for tree info
 interface TreeInfo {
@@ -34,103 +35,98 @@ interface TreeInfo {
 }
 
 const MerkleGenerator = () => {
-  const { address: connectedAddress, isConnected } = useAccount()
-  const { connect, connectors } = useConnect()
-  const { disconnect } = useDisconnect()
-  
+  const { address: connectedAddress, isConnected } = useAccount();
+  const { connect, connectors } = useConnect();
+  const { disconnect } = useDisconnect();
+
   // UI state
-  const [addresses, setAddresses] = useState<string[]>([])
-  const [inputAddress, setInputAddress] = useState('')
-  const [merkleRoot, setMerkleRoot] = useState('')
-  
-  const [merkleTree, setMerkleTree] = useState<MerkleTree | null>(null)
-  const [selectedAddress, setSelectedAddress] = useState('')
-  const [proof, setProof] = useState<string[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [fileName, setFileName] = useState('')
-  const [treeDescription, setTreeDescription] = useState('')
-  const [showContractSection, setShowContractSection] = useState(false)
-  const [txHash, setTxHash] = useState('')
-  const [txStatus, setTxStatus] = useState('')
+  const [addresses, setAddresses] = useState<string[]>([]);
+  const [inputAddress, setInputAddress] = useState("");
+  const [merkleRoot, setMerkleRoot] = useState("");
+
+  const [merkleTree, setMerkleTree] = useState<MerkleTree | null>(null);
+  const [selectedAddress, setSelectedAddress] = useState("");
+  const [proof, setProof] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [fileName, setFileName] = useState("");
+  const [treeDescription, setTreeDescription] = useState("");
+  const [showContractSection, setShowContractSection] = useState(false);
+  const [txHash, setTxHash] = useState("");
+  const [txStatus, setTxStatus] = useState("");
 
   // Contract read hooks
-  const { isValid: merkleRootValid, isLoading: rootCheckLoading } = useMerkleRootValid(merkleRoot)
-  const { fee: platformFee = "0", isLoading: feeLoading } = usePlatformFee()
-  const { isNewcomer: isNewcomerStatus, isLoading: newcomerLoading } = useIsNewcomer()
-  const { treeInfo: treeInfoData, isLoading: treeInfoLoading } = useMerkleTreeInfo(merkleRoot)
-  
+  const { isValid: merkleRootValid, isLoading: rootCheckLoading } = useMerkleRootValid(merkleRoot);
+  const { fee: platformFee = "0", isLoading: feeLoading } = usePlatformFee();
+  const { isNewcomer: isNewcomerStatus, isLoading: newcomerLoading } = useIsNewcomer();
+  const { treeInfo: treeInfoData, isLoading: treeInfoLoading } = useMerkleTreeInfo(merkleRoot);
+
   // Contract write operations
-  const { 
-    addMerkleTree, 
-    removeMerkleTree, 
-    updateTreeDescription,
-    isLoading: isContractLoading 
-  } = useMerkleContract()
-  
+  const { addMerkleTree, removeMerkleTree, updateTreeDescription, isLoading: isContractLoading } = useMerkleContract();
+
   // Format tree info
-  const formattedTreeInfo = treeInfoData as TreeInfo | null
-  
+  const formattedTreeInfo = treeInfoData as TreeInfo | null;
+
   // Check if any operation is loading
-  const isPageLoading = isLoading || isContractLoading || rootCheckLoading || 
-                        feeLoading || newcomerLoading || treeInfoLoading || false;
+  const isPageLoading =
+    isLoading || isContractLoading || rootCheckLoading || feeLoading || newcomerLoading || treeInfoLoading || false;
 
   const validateAddress = (address: string) => {
     try {
-      return ethers.isAddress(address.toLowerCase())
+      return ethers.isAddress(address.toLowerCase());
     } catch (error) {
-      return false
+      return false;
     }
-  }
+  };
 
   const handleAddAddress = () => {
     if (!inputAddress.trim()) {
-      toast.error('Please enter an address')
-      return
+      toast.error("Please enter an address");
+      return;
     }
 
-    const normalizedAddress = inputAddress.trim().toLowerCase()
+    const normalizedAddress = inputAddress.trim().toLowerCase();
     if (!validateAddress(normalizedAddress)) {
-      toast.error('Invalid Ethereum address')
-      return
+      toast.error("Invalid Ethereum address");
+      return;
     }
 
     if (addresses.includes(normalizedAddress)) {
-      toast.warning('Address already added')
-      return
+      toast.warning("Address already added");
+      return;
     }
 
     setAddresses(prevAddresses => {
-      const newAddresses = [...prevAddresses, normalizedAddress]
-      generateMerkleTree(newAddresses)
-      return newAddresses
-    })
-    setInputAddress('')
-    toast.success('Address added successfully')
-  }
+      const newAddresses = [...prevAddresses, normalizedAddress];
+      generateMerkleTree(newAddresses);
+      return newAddresses;
+    });
+    setInputAddress("");
+    toast.success("Address added successfully");
+  };
 
   const handleRemoveAddress = (addressToRemove: string) => {
     setAddresses(prevAddresses => {
-      const newAddresses = prevAddresses.filter(addr => addr !== addressToRemove)
-      generateMerkleTree(newAddresses)
-      return newAddresses
-    })
-    toast.info('Address removed')
-  }
+      const newAddresses = prevAddresses.filter(addr => addr !== addressToRemove);
+      generateMerkleTree(newAddresses);
+      return newAddresses;
+    });
+    toast.info("Address removed");
+  };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-    setIsLoading(true)
-    setFileName(file.name)
-    
-    const reader = new FileReader()
-    
-    reader.onload = (e) => {
+    setIsLoading(true);
+    setFileName(file.name);
+
+    const reader = new FileReader();
+
+    reader.onload = e => {
       try {
         const text = e.target?.result as string | undefined;
         if (!text) {
-          toast.error('Error reading file');
+          toast.error("Error reading file");
           setIsLoading(false);
           return;
         }
@@ -138,7 +134,7 @@ const MerkleGenerator = () => {
           complete: (results: Papa.ParseResult<string[]>) => {
             const lines = results.data
               .flat()
-              .map((line: string | number) => typeof line === 'string' ? line.trim() : String(line).trim())
+              .map((line: string | number) => (typeof line === "string" ? line.trim() : String(line).trim()))
               .filter((line: string) => line)
               .map((line: string) => line.toLowerCase());
 
@@ -147,175 +143,181 @@ const MerkleGenerator = () => {
 
             if (validAddresses.length > 0) {
               setAddresses(prevAddresses => {
-                const newAddresses = [...new Set([...prevAddresses, ...validAddresses])]
-                generateMerkleTree(newAddresses)
-                return newAddresses
-              })
-              toast.success(`Added ${validAddresses.length} valid addresses`)
+                const newAddresses = [...new Set([...prevAddresses, ...validAddresses])];
+                generateMerkleTree(newAddresses);
+                return newAddresses;
+              });
+              toast.success(`Added ${validAddresses.length} valid addresses`);
             }
 
             if (invalidAddresses.length > 0) {
-              toast.error(`Found ${invalidAddresses.length} invalid addresses`)
+              toast.error(`Found ${invalidAddresses.length} invalid addresses`);
             }
           },
-          error: (error: Papa.ParseError) => {
-            toast.error('Error parsing file: ' + error.message)
-          }
-        })
+          error: (error: any) => {
+            toast.error("Error parsing file: " + error.message);
+          },
+        });
       } catch (error) {
-        toast.error('Error processing file')
-        console.error(error)
+        toast.error("Error processing file");
+        console.error(error);
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
         if (event.target) {
-          event.target.value = ''
+          event.target.value = "";
         }
       }
-    }
-    
+    };
+
     reader.onerror = () => {
-      toast.error('Error reading file')
-      setIsLoading(false)
+      toast.error("Error reading file");
+      setIsLoading(false);
       if (event.target) {
-        event.target.value = ''
+        event.target.value = "";
       }
-    }
-    
-    reader.readAsText(file)
-  }
+    };
+
+    reader.readAsText(file);
+  };
 
   const handlePasteAddresses = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const text = event.target.value
-    const lines = text.split(/[\n,]/) // Split by newlines or commas
+    const text = event.target.value;
+    const lines = text
+      .split(/[\n,]/) // Split by newlines or commas
       .map(line => line.trim())
       .filter(line => line)
-      .map(line => line.toLowerCase())
+      .map(line => line.toLowerCase());
 
-    const validAddresses = lines.filter(addr => validateAddress(addr))
-    const invalidAddresses = lines.filter(addr => !validateAddress(addr) && addr.length > 0)
+    const validAddresses = lines.filter(addr => validateAddress(addr));
+    const invalidAddresses = lines.filter(addr => !validateAddress(addr) && addr.length > 0);
 
     if (validAddresses.length > 0) {
       setAddresses(prevAddresses => {
-        const newAddresses = [...new Set([...prevAddresses, ...validAddresses])]
-        generateMerkleTree(newAddresses)
-        return newAddresses
-      })
-      toast.success(`Added ${validAddresses.length} valid addresses`)
+        const newAddresses = [...new Set([...prevAddresses, ...validAddresses])];
+        generateMerkleTree(newAddresses);
+        return newAddresses;
+      });
+      toast.success(`Added ${validAddresses.length} valid addresses`);
     } else {
-      toast.warning("No valid addresses found in pasted text")
+      toast.warning("No valid addresses found in pasted text");
     }
 
     if (invalidAddresses.length > 0) {
-      toast.error(`Found ${invalidAddresses.length} invalid addresses`)
+      toast.error(`Found ${invalidAddresses.length} invalid addresses`);
     }
 
-    event.target.value = ''
-  }
+    event.target.value = "";
+  };
 
   const generateMerkleTree = (addressList: string[]) => {
     if (!addressList || addressList.length === 0) {
-      setMerkleTree(null)
-      setMerkleRoot('')
-      return null
+      setMerkleTree(null);
+      setMerkleRoot("");
+      return null;
     }
 
     try {
-      const tree = buildMerkleTree(addressList)
-      setMerkleTree(tree)
-      setMerkleRoot(tree.getHexRoot())
-      return tree
+      const tree = buildMerkleTree(addressList);
+      setMerkleTree(tree);
+      setMerkleRoot(tree.getHexRoot());
+      return tree;
     } catch (error) {
-      toast.error('Error generating Merkle tree')
-      console.error(error)
-      return null
+      toast.error("Error generating Merkle tree");
+      console.error(error);
+      return null;
     }
-  }
+  };
 
   const handleGenerateProof = (address: string) => {
-    if (!merkleTree || !address) return
-    
+    if (!merkleTree || !address) return;
+
     try {
-      const proof = merkleTree.getHexProof(ethers.keccak256(address))
-      setProof(proof)
-      setSelectedAddress(address)
-      toast.success('Proof generated successfully')
+      const proof = merkleTree.getHexProof(ethers.keccak256(address));
+      setProof(proof);
+      setSelectedAddress(address);
+      toast.success("Proof generated successfully");
     } catch (error) {
-      toast.error('Error generating proof')
-      console.error(error)
+      toast.error("Error generating proof");
+      console.error(error);
     }
-  }
+  };
 
   const downloadProof = () => {
-    if (!proof.length) return
+    if (!proof.length) return;
 
     const proofData = {
       address: selectedAddress,
       proof: proof,
-      merkleRoot: merkleRoot
-    }
+      merkleRoot: merkleRoot,
+    };
 
-    const blob = new Blob([JSON.stringify(proofData, null, 2)], { type: 'application/json' })
-    saveAs(blob, `merkle-proof-${selectedAddress.slice(0, 8)}.json`)
-    toast.success('Proof downloaded successfully')
-  }
+    const blob = new Blob([JSON.stringify(proofData, null, 2)], { type: "application/json" });
+    saveAs(blob, `merkle-proof-${selectedAddress.slice(0, 8)}.json`);
+    toast.success("Proof downloaded successfully");
+  };
 
   const downloadAllData = () => {
-    if (!merkleTree || !addresses.length) return
+    if (!merkleTree || !addresses.length) return;
 
     const allData = {
       merkleRoot,
       addresses,
       proofs: addresses.map(address => ({
         address,
-        proof: merkleTree.getHexProof(ethers.keccak256(address))
-      }))
-    }
+        proof: merkleTree.getHexProof(ethers.keccak256(address)),
+      })),
+    };
 
-    const blob = new Blob([JSON.stringify(allData, null, 2)], { type: 'application/json' })
-    saveAs(blob, `merkle-tree-data.json`)
-    toast.success('All data downloaded successfully')
-  }
+    const blob = new Blob([JSON.stringify(allData, null, 2)], { type: "application/json" });
+    saveAs(blob, `merkle-tree-data.json`);
+    toast.success("All data downloaded successfully");
+  };
 
   const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-    toast.success('Copied to clipboard')
-  }
+    navigator.clipboard.writeText(text);
+    toast.success("Copied to clipboard");
+  };
 
   // Contract interaction handlers
   const handlePublishMerkleRoot = async () => {
     if (!merkleRoot || !addresses.length || !treeDescription) {
-      toast.error("Missing required information to publish Merkle root")
-      return
+      toast.error("Missing required information to publish Merkle root");
+      return;
     }
-    
+
     try {
-      setTxStatus('pending')
+      setTxStatus("pending");
       // Fee calculation - if newcomer, fee is 0
-      const fee = isNewcomerStatus ? 0n : BigInt(platformFee as string)
-      
-      const hash = await addMerkleTree(merkleRoot, treeDescription, addresses.length, fee)
-      setTxHash(hash)
-      setTxStatus('confirmed')
-      toast.success("Merkle root successfully published to the blockchain!")
+      const fee = isNewcomerStatus ? 0n : BigInt(platformFee as string);
+
+      const hash = await addMerkleTree(merkleRoot, treeDescription, addresses.length, fee);
+      setTxHash(hash);
+      setTxStatus("confirmed");
+      toast.success("Merkle root successfully published to the blockchain!");
     } catch (error) {
-      console.error("Error publishing Merkle root:", error)
-      setTxStatus('failed')
-      
+      console.error("Error publishing Merkle root:", error);
+      setTxStatus("failed");
+
       // User-friendly error messages
-      if (typeof error === 'object' && error !== null && 'message' in error && typeof (error as any).message === 'string') {
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "message" in error &&
+        typeof (error as any).message === "string"
+      ) {
         if ((error as any).message.includes("user rejected")) {
-          toast.error("Transaction was rejected")
+          toast.error("Transaction was rejected");
         } else if ((error as any).message.includes("insufficient funds")) {
-          toast.error("Insufficient funds in your wallet")
+          toast.error("Insufficient funds in your wallet");
         } else {
-          toast.error(`Error: ${(error as any).message || "Transaction failed"}`)
+          toast.error(`Error: ${(error as any).message || "Transaction failed"}`);
         }
       } else {
-        toast.error("An unknown error occurred")
+        toast.error("An unknown error occurred");
       }
     }
-  }
-  
+  };
+
   const handleRemoveMerkleRoot = async () => {
     if (!merkleRoot) {
       toast.error("No Merkle root selected");
@@ -355,61 +357,61 @@ const MerkleGenerator = () => {
         }
       }
     }
-  }
-  
+  };
+
   const handleUpdateDescription = async () => {
     if (!merkleRoot || !treeDescription) {
-      toast.error("Please provide a new description")
-      return
+      toast.error("Please provide a new description");
+      return;
     }
-    
+
     if (!merkleRootValid) {
-      toast.error("This Merkle root is not registered in the contract")
-      return
+      toast.error("This Merkle root is not registered in the contract");
+      return;
     }
-    
+
     if (formattedTreeInfo && formattedTreeInfo.creator !== connectedAddress) {
-      toast.error("Only the creator can update this Merkle tree's description")
-      return
+      toast.error("Only the creator can update this Merkle tree's description");
+      return;
     }
-    
+
     try {
-      setTxStatus('pending')
-      const hash = await updateTreeDescription(merkleRoot, treeDescription)
-      setTxHash(hash)
-      setTxStatus('confirmed')
-      toast.success("Merkle tree description successfully updated!")
+      setTxStatus("pending");
+      const hash = await updateTreeDescription(merkleRoot, treeDescription);
+      setTxHash(hash);
+      setTxStatus("confirmed");
+      toast.success("Merkle tree description successfully updated!");
     } catch (error: unknown) {
-      console.error("Error updating description:", error)
-      setTxStatus('failed')
-      
+      console.error("Error updating description:", error);
+      setTxStatus("failed");
+
       if (typeof error === "object" && error !== null && "message" in error) {
         const errorMessage = (error as { message: string }).message;
         if (errorMessage.includes("user rejected")) {
-          toast.error("Transaction was rejected")
+          toast.error("Transaction was rejected");
         } else {
-          toast.error(`Error: ${errorMessage || "Transaction failed"}`)
+          toast.error(`Error: ${errorMessage || "Transaction failed"}`);
         }
       } else {
-        toast.error("An unknown error occurred")
+        toast.error("An unknown error occurred");
       }
     }
-  }
+  };
 
   // Format timestamp to date
   const formatDate = (timestamp: number | undefined) => {
-    if (!timestamp) return ""
+    if (!timestamp) return "";
     try {
-      return new Date(timestamp * 1000).toLocaleString()
+      return new Date(timestamp * 1000).toLocaleString();
     } catch (error) {
-      return ""
+      return "";
     }
-  }
+  };
 
   return (
     <div className="bg-[#121d33] text-white">
       {/* ToastContainer for notifications */}
-      <ToastContainer 
+      <ToastContainer
         position="top-right"
         autoClose={3000}
         hideProgressBar={false}
@@ -421,13 +423,13 @@ const MerkleGenerator = () => {
         pauseOnHover
         theme="dark"
       />
-      
+
       <div className="max-w-4xl mx-auto p-6">
         {/* Header Section */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-bold text-white">MerkleProofX Generator</h2>
-            
+
             {/* Wallet Connection */}
             {/* <div>
               {!isConnected ? (
@@ -458,18 +460,20 @@ const MerkleGenerator = () => {
               )}
             </div> */}
           </div>
-          
+
           <p className="text-gray-300 mb-4">
-            Generate Merkle proofs for your whitelist, airdrop, or any other permissioned system. Upload addresses, get your Merkle root and proofs.
+            Generate Merkle proofs for your whitelist, airdrop, or any other permissioned system. Upload addresses, get
+            your Merkle root and proofs.
           </p>
-          
+
           <div className="bg-purple-900/20 p-4 rounded-lg border border-purple-800">
             <h3 className="text-sm font-semibold text-purple-300 mb-2 flex items-center gap-2">
               <CodeBracketIcon className="h-5 w-5" />
               Developer Note
             </h3>
             <p className="text-sm text-purple-300">
-              Use the Merkle root in your smart contract. Users can later submit their proof to verify eligibility. This saves gas by not storing the entire list on-chain.
+              Use the Merkle root in your smart contract. Users can later submit their proof to verify eligibility. This
+              saves gas by not storing the entire list on-chain.
             </p>
           </div>
         </div>
@@ -493,9 +497,7 @@ const MerkleGenerator = () => {
                   file:transition-colors"
                 disabled={isPageLoading}
               />
-              <p className="text-sm text-gray-400">
-                Upload a CSV or TXT file with one address per line
-              </p>
+              <p className="text-sm text-gray-400">Upload a CSV or TXT file with one address per line</p>
             </div>
           </div>
 
@@ -522,7 +524,7 @@ const MerkleGenerator = () => {
               <input
                 type="text"
                 value={inputAddress}
-                onChange={(e) => setInputAddress(e.target.value)}
+                onChange={e => setInputAddress(e.target.value)}
                 placeholder="Enter Ethereum address"
                 className="flex-1 p-3 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-gray-700 text-white"
                 disabled={isPageLoading}
@@ -553,9 +555,9 @@ const MerkleGenerator = () => {
                       if (window.confirm("Are you sure you want to clear all addresses?")) {
                         setAddresses([]);
                         setMerkleTree(null);
-                        setMerkleRoot('');
+                        setMerkleRoot("");
                         setProof([]);
-                        setSelectedAddress('');
+                        setSelectedAddress("");
                         toast.info("All addresses cleared");
                       }
                     }}
@@ -567,7 +569,7 @@ const MerkleGenerator = () => {
                 </div>
                 <div className="max-h-60 overflow-y-auto border border-gray-700 rounded-lg">
                   <ul className="divide-y divide-gray-700">
-                    {addresses.map((address) => (
+                    {addresses.map(address => (
                       <li key={address} className="p-3 flex items-center justify-between text-sm hover:bg-gray-700">
                         <span className="text-gray-200 font-mono truncate max-w-xs">{address}</span>
                         <div className="flex space-x-2">
@@ -610,14 +612,14 @@ const MerkleGenerator = () => {
                   <ClipboardDocumentIcon className="h-5 w-5" />
                 </button>
               </div>
-              
+
               {/* Root Status & Contract Interaction Section */}
               {isConnected && (
                 <div className="space-y-4">
                   {/* Root status */}
                   <div className="p-4 bg-gray-700 rounded-lg">
                     <h4 className="text-sm font-medium mb-2 text-gray-300">Blockchain Status</h4>
-                    
+
                     {rootCheckLoading ? (
                       <p className="text-sm text-gray-400">Checking root status...</p>
                     ) : merkleRootValid ? (
@@ -626,13 +628,22 @@ const MerkleGenerator = () => {
                           <CheckCircleIcon className="h-5 w-5 mr-2" />
                           <span>Root is registered on-chain</span>
                         </div>
-                        
+
                         {formattedTreeInfo && (
                           <div className="mt-2 text-sm text-gray-300">
-                            <p><span className="font-medium">Description:</span> {formattedTreeInfo.description}</p>
-                            <p><span className="font-medium">Creator:</span> {formattedTreeInfo.creator?.slice(0, 6)}...{formattedTreeInfo.creator?.slice(-4)}</p>
-                            <p><span className="font-medium">Size:</span> {formattedTreeInfo.listSize} addresses</p>
-                            <p><span className="font-medium">Created:</span> {formatDate(formattedTreeInfo.timestamp)}</p>
+                            <p>
+                              <span className="font-medium">Description:</span> {formattedTreeInfo.description}
+                            </p>
+                            <p>
+                              <span className="font-medium">Creator:</span> {formattedTreeInfo.creator?.slice(0, 6)}...
+                              {formattedTreeInfo.creator?.slice(-4)}
+                            </p>
+                            <p>
+                              <span className="font-medium">Size:</span> {formattedTreeInfo.listSize} addresses
+                            </p>
+                            <p>
+                              <span className="font-medium">Created:</span> {formatDate(formattedTreeInfo.timestamp)}
+                            </p>
                           </div>
                         )}
                       </div>
@@ -643,7 +654,7 @@ const MerkleGenerator = () => {
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Contract interaction buttons */}
                   <div className="flex flex-wrap gap-4">
                     <button
@@ -658,39 +669,38 @@ const MerkleGenerator = () => {
                       {showContractSection ? "Hide Contract Options" : "Manage on Blockchain"}
                     </button>
                   </div>
-                  
+
                   {/* Contract interaction section */}
                   {showContractSection && (
                     <div className="mt-4 p-4 border border-gray-700 rounded-lg">
                       <h4 className="text-lg font-medium mb-4 text-gray-200">Blockchain Operations</h4>
-                      
+
                       {/* Description input */}
                       <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-300 mb-1">
-                          Tree Description
-                        </label>
+                        <label className="block text-sm font-medium text-gray-300 mb-1">Tree Description</label>
                         <input
                           type="text"
                           value={treeDescription}
-                          onChange={(e) => setTreeDescription(e.target.value)}
+                          onChange={e => setTreeDescription(e.target.value)}
                           placeholder="e.g., NFT Whitelist Phase 1"
                           className="w-full p-2 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-gray-700 text-white"
                           disabled={isPageLoading}
                         />
                       </div>
-                      
+
                       {/* Fee info */}
-                      {typeof platformFee === 'string' && BigInt(platformFee) > 0 && (
+                      {typeof platformFee === "string" && BigInt(platformFee) > 0 && (
                         <div className="mb-4 p-3 bg-gray-700 rounded-lg text-sm">
                           <p className="text-gray-300">
-                            <span className="font-medium">Platform Fee:</span> {typeof platformFee === 'string' ? formatEther(BigInt(platformFee)) : '0'} ETH
+                            <span className="font-medium">Platform Fee:</span>{" "}
+                            {typeof platformFee === "string" ? formatEther(BigInt(platformFee)) : "0"} ETH
                             {isNewcomerStatus === true && (
                               <span className="ml-2 text-green-400">(First tree is free!)</span>
                             )}
                           </p>
                         </div>
                       )}
-                      
+
                       {/* Action buttons */}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         {/* Publish button */}
@@ -701,28 +711,26 @@ const MerkleGenerator = () => {
                         >
                           {isContractLoading ? "Processing..." : "Publish Root"}
                         </button>
-                        
+
                         {/* Update button */}
                         <button
                           onClick={handleUpdateDescription}
                           disabled={isPageLoading || !merkleRoot || !treeDescription || Boolean(merkleRootValid)}
-
                           className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                           {isContractLoading ? "Processing..." : "Update Description"}
                         </button>
-                        
+
                         {/* Remove button */}
                         <button
                           onClick={handleRemoveMerkleRoot}
                           disabled={isPageLoading || !merkleRoot || !treeDescription || Boolean(merkleRootValid)}
-
                           className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                           {isContractLoading ? "Processing..." : "Remove Root"}
                         </button>
                       </div>
-                      
+
                       {/* Transaction status */}
                       {txHash && (
                         <div className="mt-4 p-3 bg-purple-900/20 rounded-lg text-sm border border-purple-800">
@@ -784,7 +792,7 @@ const MerkleGenerator = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default MerkleGenerator
+export default MerkleGenerator;
