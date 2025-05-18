@@ -13,6 +13,7 @@ import { MerkleTree } from "../../utils/Merkle";
 import { ethers } from "ethers";
 import { saveAs } from "file-saver";
 import Papa from "papaparse";
+import { ParseResult } from "papaparse";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { formatEther } from "viem";
@@ -130,8 +131,8 @@ const MerkleGenerator = () => {
           setIsLoading(false);
           return;
         }
-        Papa.parse<string[]>(text, {
-          complete: (results: Papa.ParseResult<string[]>) => {
+        Papa.parse(text, {
+          complete: (results: ParseResult<string[]>) => {
             const lines = results.data
               .flat()
               .map((line: string | number) => (typeof line === "string" ? line.trim() : String(line).trim()))
