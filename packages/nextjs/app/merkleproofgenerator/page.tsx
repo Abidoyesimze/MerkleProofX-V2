@@ -13,7 +13,7 @@ import { MerkleTree } from "../../utils/Merkle";
 import { ethers } from "ethers";
 import { saveAs } from "file-saver";
 import Papa from "papaparse";
-import { ParseResult } from "papaparse";
+import type { ParseResult } from "papaparse";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { formatEther } from "viem";

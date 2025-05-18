@@ -1,5 +1,4 @@
-import { ethers } from "hardhat";
-import { HardhatRuntimeEnvironment } from "hardhat/types";
+import { ethers, run } from "hardhat";
 import { MerkleProofX } from "../typechain-types";
 
 async function main(): Promise<void> {
@@ -24,11 +23,8 @@ async function main(): Promise<void> {
   console.log("\n⏳ Waiting for a few confirmations before verification...");
   await merkleProofX.deploymentTransaction()?.wait(3); // Wait for 3 confirmations (important!)
 
-  // Access hardhat runtime environment for verification
-  const hre = require("hardhat") as HardhatRuntimeEnvironment;
-
   console.log("🔎 Verifying on Etherscan...");
-  await hre.run("verify:verify", {
+  await run("verify:verify", {
     address: contractAddress,
     constructorArguments: [treasuryAddress],
   });
