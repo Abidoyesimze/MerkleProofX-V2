@@ -22,6 +22,7 @@ export default defineConfig([
       "@typescript-eslint/ban-ts-comment": "off",
       "@typescript-eslint/no-unused-vars": "off",
       "@typescript-eslint/check-types": "off",
+      "@typescript-eslint/no-unescaped-entities": "off",
 
       "prettier/prettier": [
         "warn",
