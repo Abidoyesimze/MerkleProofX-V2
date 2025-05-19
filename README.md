@@ -1,80 +1,199 @@
-# 🏗 Scaffold-ETH 2
+MerkleProofX 🌳
+MerkleProofX is a comprehensive platform for creating, validating, and managing Merkle trees and proofs in Web3 applications. It streamlines whitelisting, access control, and eligibility verification for NFTs, token airdrops, and DAOs.
+🎯 Why MerkleProofX?
+Problem: Managing allowlists, verifying eligibility, and implementing access control on-chain can be expensive, complex, and error-prone.
+Solution: MerkleProofX provides a gas-efficient, secure, and user-friendly approach to verification using Merkle trees. Store just one hash on-chain and verify thousands of addresses without prohibitive gas costs.
+🤔 Who Needs MerkleProofX?
 
-<h4 align="center">
-  <a href="https://docs.scaffoldeth.io">Documentation</a> |
-  <a href="https://scaffoldeth.io">Website</a>
-</h4>
+NFT Creators implementing whitelists for presales
+Token Projects managing airdrops to eligible addresses
+DAOs verifying membership and voting rights
+dApp Developers requiring secure on-chain verification
+Community Managers managing access to gated content
+Protocol Teams implementing multi-tier access control
 
-🧪 An open-source, up-to-date toolkit for building decentralized applications (dapps) on the Ethereum blockchain. It's designed to make it easier for developers to create and deploy smart contracts and build user interfaces that interact with those contracts.
+✨ Key Features
 
-⚙️ Built using NextJS, RainbowKit, Hardhat, Wagmi, Viem, and Typescript.
+📝 Streamlined List Management: Upload addresses via text input or file upload
+🌲 Merkle Tree Generation: Create Merkle roots and proofs with one click
+🔍 Flexible Verification: Validate proofs client-side or on-chain
+🔐 On-chain Registration: Store Merkle roots with descriptions for permanent reference
+📊 Usage Analytics: Track validation counts and usage statistics
+📁 Easy Data Handling: Import/export proof data in JSON format
+🔄 Developer-friendly: Seamlessly integrate with existing smart contracts
+🎨 Polished UI: Modern, responsive interface with dark mode
+⚡ Gas Optimized: Cost-efficient smart contract implementations
+🛡️ Security Focused: Built-in address validation and safety features
 
-- ✅ **Contract Hot Reload**: Your frontend auto-adapts to your smart contract as you edit it.
-- 🪝 **[Custom hooks](https://docs.scaffoldeth.io/hooks/)**: Collection of React hooks wrapper around [wagmi](https://wagmi.sh/) to simplify interactions with smart contracts with typescript autocompletion.
-- 🧱 [**Components**](https://docs.scaffoldeth.io/components/): Collection of common web3 components to quickly build your frontend.
-- 🔥 **Burner Wallet & Local Faucet**: Quickly test your application with a burner wallet and local faucet.
-- 🔐 **Integration with Wallet Providers**: Connect to different wallet providers and interact with the Ethereum network.
+🔧 How It Works
 
-![Debug Contracts tab](https://github.com/scaffold-eth/scaffold-eth-2/assets/55535804/b237af0c-5027-4849-a5c1-2e31495cccb1)
+Create Your List: Upload or input the addresses you want to whitelist
+Generate the Merkle Tree: System creates a Merkle root hash from your addresses
+Register On-chain: Store your Merkle root with metadata for future reference
+Generate Proofs: Create verification proofs for each whitelisted address
+Distribute Proofs: Share proofs with users or integrate with your frontend
+Validate Eligibility: Users verify their inclusion through our interface or your smart contracts
+Track Usage: Monitor validation statistics to understand user engagement
 
-## Requirements
+🔗 Smart Contract Integration
+Basic Verifier Implementation
+solidity// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.17;
 
-Before you begin, you need to install the following tools:
+contract MerkleVerifier {
+    bytes32 public merkleRoot;
 
-- [Node (>= v20.18.3)](https://nodejs.org/en/download/)
-- Yarn ([v1](https://classic.yarnpkg.com/en/docs/install/) or [v2+](https://yarnpkg.com/getting-started/install))
-- [Git](https://git-scm.com/downloads)
+    constructor(bytes32 _merkleRoot) {
+        merkleRoot = _merkleRoot;
+    }
 
-## Quickstart
+    function verify(bytes32[] calldata proof, address account) public view returns (bool) {
+        bytes32 leaf = keccak256(abi.encodePacked(account));
+        bytes32 computedHash = leaf;
 
-To get started with Scaffold-ETH 2, follow the steps below:
+        for (uint256 i = 0; i < proof.length; i++) {
+            bytes32 proofElement = proof[i];
+            if (computedHash <= proofElement) {
+                computedHash = keccak256(abi.encodePacked(computedHash, proofElement));
+            } else {
+                computedHash = keccak256(abi.encodePacked(proofElement, computedHash));
+            }
+        }
 
-1. Install dependencies if it was skipped in CLI:
+        return computedHash == merkleRoot;
+    }
+}
+Integration Examples
+NFT Whitelist
+soliditycontract WhitelistedNFT is ERC721, MerkleVerifier {
+    constructor(bytes32 _merkleRoot) ERC721("WhitelistedNFT", "WNFT") MerkleVerifier(_merkleRoot) {}
 
-```
-cd my-dapp-example
-yarn install
-```
+    function mint(bytes32[] calldata proof) external {
+        require(verify(proof, msg.sender), "Not whitelisted");
+        _mint(msg.sender, totalSupply());
+    }
+}
+Token Airdrop
+soliditycontract MerkleAirdrop is ERC20, MerkleVerifier {
+    mapping(address => bool) public claimed;
 
-2. Run a local network in the first terminal:
+    constructor(bytes32 _merkleRoot) ERC20("AirdropToken", "AIR") MerkleVerifier(_merkleRoot) {}
 
-```
-yarn chain
-```
+    function claim(bytes32[] calldata proof) external {
+        require(!claimed[msg.sender], "Already claimed");
+        require(verify(proof, msg.sender), "Not eligible");
+        
+        claimed[msg.sender] = true;
+        _mint(msg.sender, 100 * 10**decimals());
+    }
+}
+DAO Voting Rights
+soliditycontract MerkleDAO {
+    MerkleVerifier public verifier;
+    
+    constructor(bytes32 _merkleRoot) {
+        verifier = new MerkleVerifier(_merkleRoot);
+    }
 
-This command starts a local Ethereum network using Hardhat. The network runs on your local machine and can be used for testing and development. You can customize the network configuration in `packages/hardhat/hardhat.config.ts`.
+    function vote(uint256 proposalId, bool support, bytes32[] calldata proof) external {
+        require(verifier.verify(proof, msg.sender), "Not a member");
+        // Voting logic here
+    }
+}
+🛠️ Developer API
+Generate Merkle Tree
+javascriptimport { generateMerkleTree } from '@merkleproofx/utils';
 
-3. On a second terminal, deploy the test contract:
+const addresses = [
+  '0x1234...', 
+  '0x5678...'
+];
 
-```
-yarn deploy
-```
+const merkleTree = generateMerkleTree(addresses);
+const root = merkleTree.getHexRoot();
+Generate Proof for Address
+javascriptimport { generateMerkleProof } from '@merkleproofx/utils';
 
-This command deploys a test smart contract to the local network. The contract is located in `packages/hardhat/contracts` and can be modified to suit your needs. The `yarn deploy` command uses the deploy script located in `packages/hardhat/deploy` to deploy the contract to the network. You can also customize the deploy script.
+const proof = generateMerkleProof(merkleTree, address);
+Validate Proof
+javascriptimport { verifyMerkleProof } from '@merkleproofx/utils';
 
-4. On a third terminal, start your NextJS app:
+const isValid = verifyMerkleProof(proof, merkleRoot, address);
+Register Merkle Root
+javascriptimport { MerkleVerifierContract } from '@merkleproofx/contracts';
 
-```
-yarn start
-```
+const transaction = await MerkleVerifierContract.registerMerkleRoot(
+  merkleRoot,
+  "My Whitelist"
+);
 
-Visit your app on: `http://localhost:3000`. You can interact with your smart contract using the `Debug Contracts` page. You can tweak the app config in `packages/nextjs/scaffold.config.ts`.
+await transaction.wait();
+📚 Implementation Best Practices
+Gas Optimization
 
-Run smart contract test with `yarn hardhat:test`
+Sort Addresses: Always sort addresses lexicographically before generating the Merkle tree
+Optimal Tree Depth: Balance your tree to minimize proof length (usually 20 addresses per level)
+Batch Operations: Implement batch claim/verification functions when possible
+View Functions: Use view functions for pre-validation to save users gas
 
-- Edit your smart contracts in `packages/hardhat/contracts`
-- Edit your frontend homepage at `packages/nextjs/app/page.tsx`. For guidance on [routing](https://nextjs.org/docs/app/building-your-application/routing/defining-routes) and configuring [pages/layouts](https://nextjs.org/docs/app/building-your-application/routing/pages-and-layouts) checkout the Next.js documentation.
-- Edit your deployment scripts in `packages/hardhat/deploy`
+Security Considerations
 
+Input Validation: Always normalize and validate addresses before tree generation
+Proof Verification: Verify proofs client-side before initiating on-chain transactions
+Access Control: Implement proper permissions for admin functions
+Deterministic Generation: Ensure your tree generation algorithm is consistent across platforms
 
-## Documentation
+Scalability Tips
 
-Visit our [docs](https://docs.scaffoldeth.io) to learn how to start building with Scaffold-ETH 2.
+Off-chain Storage: Store proofs off-chain, only putting the root hash on-chain
+Efficient Distribution: Consider using IPFS or similar for proof distribution
+Pagination: Implement pagination when displaying large address lists
+Optimistic UI: Update UI optimistically while transactions confirm
 
-To know more about its features, check out our [website](https://scaffoldeth.io).
+Proof Management
 
-## Contributing to Scaffold-ETH 2
+Standardized Format: Use consistent JSON schema for proof exports
+Metadata: Include descriptive information with your Merkle trees
+Versioning: Implement version control for your Merkle trees
+Automated Testing: Verify your trees with automated testing before deployment
 
-We welcome contributions to Scaffold-ETH 2!
+🚀 Getting Started
+Prerequisites
 
-Please see [CONTRIBUTING.MD](https://github.com/scaffold-eth/scaffold-eth-2/blob/main/CONTRIBUTING.md) for more information and guidelines for contributing to Scaffold-ETH 2.
+Node.js >= 16
+npm or yarn
+MetaMask or another Web3 wallet
+
+Installation
+
+Clone the repository:
+
+bash git clone https://github.com/Abidoyesimze/MerkleProofX-V2
+cd merkleproofx
+
+Install dependencies:
+
+bashnpm install
+
+Start the development server:
+
+bashnpm run dev
+
+Open http://localhost:3000
+
+🤝 Contributing
+Contributions make the open source community thrive. Here's how you can help:
+
+Fork the repository
+Create your feature branch (git checkout -b feature/amazing-feature)
+Commit your changes (git commit -m 'Add amazing feature')
+Push to the branch (git push origin feature/amazing-feature)
+Open a Pull Request
+
+📄 License
+This project is licensed under the MIT License - see the LICENSE file for details.
+🙏 Acknowledgments
+
+OpenZeppelin for their Merkle tree implementation
+The Ethereum community for continuous innovation
+All contributors who have helped shape MerkleProofX
