@@ -47,12 +47,18 @@ Merkle Trees provide significant advantages for Web3 applications:
    yarn install
    ```
 
-3. **Start the development server**
+ 3.  **Navigate to the frontend folder**
+   ```bash
+   cd packages/nextjs
+   ```
+  
+
+4. **Start the development server**
    ```bash
    yarn start
    ```
 
-4. **Open your browser**
+5. **Open your browser**
    Navigate to `http://localhost:3000` to access MerkleProofX.
 
 ### Alternative: Using Scaffold-ETH 2
