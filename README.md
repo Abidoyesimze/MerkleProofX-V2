@@ -1,43 +1,96 @@
-MerkleProofX 🌳
-MerkleProofX is a comprehensive platform for creating, validating, and managing Merkle trees and proofs in Web3 applications. It streamlines whitelisting, access control, and eligibility verification for NFTs, token airdrops, and DAOs.
-🎯 Why MerkleProofX?
-Problem: Managing allowlists, verifying eligibility, and implementing access control on-chain can be expensive, complex, and error-prone.
-Solution: MerkleProofX provides a gas-efficient, secure, and user-friendly approach to verification using Merkle trees. Store just one hash on-chain and verify thousands of addresses without prohibitive gas costs.
-🤔 Who Needs MerkleProofX?
+# MerkleProofX
 
-NFT Creators implementing whitelists for presales
-Token Projects managing airdrops to eligible addresses
-DAOs verifying membership and voting rights
-dApp Developers requiring secure on-chain verification
-Community Managers managing access to gated content
-Protocol Teams implementing multi-tier access control
+> A complete utility for creating, managing, and verifying Merkle Trees and Merkle Proofs — ideal for whitelisting, airdrops, DAO access, and other Web3 use cases.
 
-✨ Key Features
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Built with Scaffold-ETH 2](https://img.shields.io/badge/Built%20with-Scaffold--ETH%202-blue)](https://scaffoldeth.io)
 
-📝 Streamlined List Management: Upload addresses via text input or file upload
-🌲 Merkle Tree Generation: Create Merkle roots and proofs with one click
-🔍 Flexible Verification: Validate proofs client-side or on-chain
-🔐 On-chain Registration: Store Merkle roots with descriptions for permanent reference
-📊 Usage Analytics: Track validation counts and usage statistics
-📁 Easy Data Handling: Import/export proof data in JSON format
-🔄 Developer-friendly: Seamlessly integrate with existing smart contracts
-🎨 Polished UI: Modern, responsive interface with dark mode
-⚡ Gas Optimized: Cost-efficient smart contract implementations
-🛡️ Security Focused: Built-in address validation and safety features
+## Overview
 
-🔧 How It Works
+**MerkleProofX** is built on **Scaffold-ETH 2** and provides a powerful developer UI for generating Merkle proofs, managing root hashes, and integrating on-chain verification in seconds. It enables secure, gas-efficient verification of large datasets on-chain while maintaining privacy and minimizing contract complexity.
 
-Create Your List: Upload or input the addresses you want to whitelist
-Generate the Merkle Tree: System creates a Merkle root hash from your addresses
-Register On-chain: Store your Merkle root with metadata for future reference
-Generate Proofs: Create verification proofs for each whitelisted address
-Distribute Proofs: Share proofs with users or integrate with your frontend
-Validate Eligibility: Users verify their inclusion through our interface or your smart contracts
-Track Usage: Monitor validation statistics to understand user engagement
+## Why Merkle Trees?
 
-🔗 Smart Contract Integration
-Basic Verifier Implementation
-solidity// SPDX-License-Identifier: MIT
+Merkle Trees provide significant advantages for Web3 applications:
+
+- **Efficient Verification**: Verify user inclusion with a single root hash
+- **Gas Optimization**: Save storage costs by keeping only the root on-chain
+- **Privacy Protection**: Use hashed proofs to protect sensitive data
+- **Scalability**: Handle large datasets with minimal on-chain footprint
+
+## Use Cases
+
+- **NFT Presale Whitelisting**: Manage exclusive access to NFT mints
+- **Token Airdrops**: Distribute tokens to eligible addresses efficiently
+- **DAO Governance**: Verify voter eligibility without storing all addresses
+- **Access Control**: Implement role-based permissions
+- **KYC Validation**: Verify user credentials while maintaining privacy
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js >= 18.17.0
+- Yarn or npm
+- Git
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/Abidoyesimze/MerkleProofX-V2.git
+   cd MerkleProofX-V2
+   ```
+
+2. **Install dependencies**
+   ```bash
+   yarn install
+   ```
+
+3. **Start the development server**
+   ```bash
+   yarn start
+   ```
+
+4. **Open your browser**
+   Navigate to `http://localhost:3000` to access MerkleProofX.
+
+### Alternative: Using Scaffold-ETH 2
+
+If you want to integrate MerkleProofX into an existing Scaffold-ETH 2 project:
+
+1. **Clone into your Scaffold-ETH 2 monorepo**
+   ```bash
+   cd your-scaffold-eth-2-project
+   git clone https://github.com/Abidoyesimze/MerkleProofX-V2.git packages/merkletree
+   cd packages/merkletree
+   yarn install
+   ```
+
+2. **Start the development server**
+   ```bash
+   yarn dev
+   ```
+
+3. **Access the application**
+   Open `http://localhost:3000/merkletree`
+
+## Features
+
+- **🌐 Web Interface**: Intuitive UI for inputting or uploading whitelists
+- **🔐 Real-time Generation**: On-the-fly Merkle tree and proof creation
+- **🧪 Live Verification**: Real-time address proof verification
+- **📤 Export Functionality**: Export proofs as JSON for easy integration
+- **📄 Smart Contract Examples**: Ready-to-use contract templates
+- **🌓 Modern UI**: Clean, responsive design with light/dark mode support
+- **🧩 Modular Design**: Easily integrate into other Web3 applications
+
+## Smart Contract Examples
+
+### Basic Merkle Verifier
+
+```solidity
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
 contract MerkleVerifier {
@@ -47,153 +100,152 @@ contract MerkleVerifier {
         merkleRoot = _merkleRoot;
     }
 
-    function verify(bytes32[] calldata proof, address account) public view returns (bool) {
+    function verify(
+        bytes32[] calldata proof,
+        address account
+    ) public view returns (bool) {
         bytes32 leaf = keccak256(abi.encodePacked(account));
-        bytes32 computedHash = leaf;
+        bytes32 hash = leaf;
 
         for (uint256 i = 0; i < proof.length; i++) {
             bytes32 proofElement = proof[i];
-            if (computedHash <= proofElement) {
-                computedHash = keccak256(abi.encodePacked(computedHash, proofElement));
-            } else {
-                computedHash = keccak256(abi.encodePacked(proofElement, computedHash));
-            }
+            hash = hash <= proofElement
+                ? keccak256(abi.encodePacked(hash, proofElement))
+                : keccak256(abi.encodePacked(proofElement, hash));
         }
 
-        return computedHash == merkleRoot;
+        return hash == merkleRoot;
     }
 }
-Integration Examples
-NFT Whitelist
-soliditycontract WhitelistedNFT is ERC721, MerkleVerifier {
-    constructor(bytes32 _merkleRoot) ERC721("WhitelistedNFT", "WNFT") MerkleVerifier(_merkleRoot) {}
+```
+
+### NFT Whitelist Contract
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.17;
+
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "./MerkleVerifier.sol";
+
+contract WhitelistedNFT is ERC721, MerkleVerifier {
+    uint256 public totalSupply;
+
+    constructor(bytes32 _root) 
+        ERC721("Whitelist NFT", "WNFT") 
+        MerkleVerifier(_root) {}
 
     function mint(bytes32[] calldata proof) external {
         require(verify(proof, msg.sender), "Not whitelisted");
-        _mint(msg.sender, totalSupply());
+        _mint(msg.sender, totalSupply++);
     }
 }
-Token Airdrop
-soliditycontract MerkleAirdrop is ERC20, MerkleVerifier {
+```
+
+### ERC20 Airdrop Contract
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.17;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "./MerkleVerifier.sol";
+
+contract MerkleAirdrop is ERC20, MerkleVerifier {
     mapping(address => bool) public claimed;
 
-    constructor(bytes32 _merkleRoot) ERC20("AirdropToken", "AIR") MerkleVerifier(_merkleRoot) {}
+    constructor(bytes32 _root) 
+        ERC20("AirdropToken", "ADT") 
+        MerkleVerifier(_root) {}
 
     function claim(bytes32[] calldata proof) external {
         require(!claimed[msg.sender], "Already claimed");
-        require(verify(proof, msg.sender), "Not eligible");
+        require(verify(proof, msg.sender), "Invalid proof");
         
         claimed[msg.sender] = true;
-        _mint(msg.sender, 100 * 10**decimals());
+        _mint(msg.sender, 100 * 1e18); // 100 tokens
     }
 }
-DAO Voting Rights
-soliditycontract MerkleDAO {
-    MerkleVerifier public verifier;
-    
-    constructor(bytes32 _merkleRoot) {
-        verifier = new MerkleVerifier(_merkleRoot);
-    }
+```
 
-    function vote(uint256 proposalId, bool support, bytes32[] calldata proof) external {
-        require(verifier.verify(proof, msg.sender), "Not a member");
-        // Voting logic here
-    }
-}
-🛠️ Developer API
-Generate Merkle Tree
-javascriptimport { generateMerkleTree } from '@merkleproofx/utils';
+## Developer API
+COMING SOON!!!
 
-const addresses = [
-  '0x1234...', 
-  '0x5678...'
-];
+## Best Practices
 
-const merkleTree = generateMerkleTree(addresses);
-const root = merkleTree.getHexRoot();
-Generate Proof for Address
-javascriptimport { generateMerkleProof } from '@merkleproofx/utils';
+### Security
 
-const proof = generateMerkleProof(merkleTree, address);
-Validate Proof
-javascriptimport { verifyMerkleProof } from '@merkleproofx/utils';
+- **Sort Addresses**: Always sort addresses before generating the tree to ensure consistency
+- **Dual Validation**: Validate proofs on both client-side and smart contract
+- **Root Protection**: Never share Merkle roots without proper proof verification
 
-const isValid = verifyMerkleProof(proof, merkleRoot, address);
-Register Merkle Root
-javascriptimport { MerkleVerifierContract } from '@merkleproofx/contracts';
+### Development
 
-const transaction = await MerkleVerifierContract.registerMerkleRoot(
-  merkleRoot,
-  "My Whitelist"
-);
+- **Audit Records**: Keep original address lists and generated proofs for auditing
+- **Testing**: Thoroughly test proof generation and verification processes
+- **Gas Optimization**: Consider proof length when designing large trees
+- **Error Handling**: Implement proper error handling for invalid proofs
 
-await transaction.wait();
-📚 Implementation Best Practices
-Gas Optimization
+## Contributing
 
-Sort Addresses: Always sort addresses lexicographically before generating the Merkle tree
-Optimal Tree Depth: Balance your tree to minimize proof length (usually 20 addresses per level)
-Batch Operations: Implement batch claim/verification functions when possible
-View Functions: Use view functions for pre-validation to save users gas
+We welcome contributions! Please follow these steps:
 
-Security Considerations
+1. **Fork the repository**
+   ```bash
+   git fork https://github.com/Abidoyesimze/MerkleProofX-V2.git
+   ```
 
-Input Validation: Always normalize and validate addresses before tree generation
-Proof Verification: Verify proofs client-side before initiating on-chain transactions
-Access Control: Implement proper permissions for admin functions
-Deterministic Generation: Ensure your tree generation algorithm is consistent across platforms
+2. **Create a feature branch**
+   ```bash
+   git checkout -b feat/your-feature-name
+   ```
 
-Scalability Tips
+3. **Make your changes and commit**
+   ```bash
+   git commit -m "feat: add your feature description"
+   ```
 
-Off-chain Storage: Store proofs off-chain, only putting the root hash on-chain
-Efficient Distribution: Consider using IPFS or similar for proof distribution
-Pagination: Implement pagination when displaying large address lists
-Optimistic UI: Update UI optimistically while transactions confirm
+4. **Push to your fork and create a Pull Request**
+   ```bash
+   git push origin feat/your-feature-name
+   ```
 
-Proof Management
+### Development Setup
 
-Standardized Format: Use consistent JSON schema for proof exports
-Metadata: Include descriptive information with your Merkle trees
-Versioning: Implement version control for your Merkle trees
-Automated Testing: Verify your trees with automated testing before deployment
+```bash
+# Install dependencies
+yarn install
 
-🚀 Getting Started
-Prerequisites
+# Run tests
+yarn test
 
-Node.js >= 16
-npm or yarn
-MetaMask or another Web3 wallet
+# Build the project
+yarn build
 
-Installation
+# Lint code
+yarn lint
+```
 
-Clone the repository:
+## License
 
-bash git clone https://github.com/Abidoyesimze/MerkleProofX-V2
-cd merkleproofx
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-Install dependencies:
+## Contact & Support
 
-bashnpm install
+- **GitHub**: [@Abidoyesimze](https://github.com/Abidoyesimze)
+- **Email**: similoluwaeyitayoabidoye@gmail.com
+- **Twitter**: [@simze_eth](https://twitter.com/simze_eth)
 
-Start the development server:
+## Acknowledgements
 
-bashnpm run dev
+Special thanks to the following projects and communities:
 
-Open http://localhost:3000
+- [Scaffold-ETH 2](https://scaffoldeth.io) - The foundation for rapid dApp development
+- [OpenZeppelin](https://openzeppelin.com) - Secure smart contract libraries
+- [Ethereum Community](https://ethereum.org) - For building the future of decentralized applications
 
-🤝 Contributing
-Contributions make the open source community thrive. Here's how you can help:
+---
 
-Fork the repository
-Create your feature branch (git checkout -b feature/amazing-feature)
-Commit your changes (git commit -m 'Add amazing feature')
-Push to the branch (git push origin feature/amazing-feature)
-Open a Pull Request
-
-📄 License
-This project is licensed under the MIT License - see the LICENSE file for details.
-🙏 Acknowledgments
-
-OpenZeppelin for their Merkle tree implementation
-The Ethereum community for continuous innovation
-All contributors who have helped shape MerkleProofX
+<div align="center">
+  <strong>Built with ❤️ for the Web3 community</strong>
+</div>
