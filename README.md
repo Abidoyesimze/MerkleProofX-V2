@@ -248,6 +248,7 @@ Special thanks to the following projects and communities:
 
 - [Scaffold-ETH 2](https://scaffoldeth.io) - The foundation for rapid dApp development
 - [OpenZeppelin](https://openzeppelin.com) - Secure smart contract libraries
+- [Buidlguidl](https://app.buidlguidl.com/) - For supporting this project and fostering the builder community 
 - [Ethereum Community](https://ethereum.org) - For building the future of decentralized applications
 
 ---
